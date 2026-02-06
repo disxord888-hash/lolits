@@ -1,5 +1,5 @@
 /**
- * Premium Tetris - World Guideline Implementation
+ * lolits - World Guideline Implementation
  */
 
 // --- Constants ---
@@ -181,7 +181,7 @@ class Game {
         this.initMobileControls();
 
         // Show start overlay
-        this.showOverlay('TETRIS', 'Press SPACE to Start');
+        this.showOverlay('lolits', 'Press SPACE to Start');
     }
 
     createGrid() {
@@ -448,7 +448,7 @@ class Game {
                 if (tspin) {
                     actionText += (linesCleared === 0 ? "T-SPIN" : (linesCleared === 1 ? "T-SPIN SINGLE" : (linesCleared === 2 ? "T-SPIN DOUBLE" : "T-SPIN TRIPLE")));
                 } else if (isTetris) {
-                    actionText += "TETRIS";
+                    actionText += "LOLITS";
                 }
             }
 
