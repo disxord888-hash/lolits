@@ -191,7 +191,7 @@ class Game {
         document.addEventListener('keyup', e => this.handleKeyUp(e));
         document.getElementById('restart-btn').addEventListener('click', () => this.reset());
 
-        this.initMobileControls();
+
 
         // Show start overlay
         this.showOverlay('lolits', 'Press SPACE to Start');
@@ -686,67 +686,7 @@ class Game {
         this.drawHold();
     }
 
-    initMobileControls() {
-        const bind = (id, action, stopAction) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            el.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                action();
-            });
-            if (stopAction) {
-                const stop = (e) => {
-                    e.preventDefault();
-                    stopAction();
-                };
-                el.addEventListener('pointerup', stop);
-                el.addEventListener('pointerleave', stop);
-                el.addEventListener('pointercancel', stop);
-            }
-        };
 
-        bind('btn-left', () => {
-            if (this.moveDir !== -1) {
-                this.moveSide(-1);
-                this.moveDir = -1;
-                this.dasCounter = 0;
-            }
-        }, () => {
-            if (this.moveDir === -1) this.moveDir = 0;
-        });
-
-        bind('btn-right', () => {
-            if (this.moveDir !== 1) {
-                this.moveSide(1);
-                this.moveDir = 1;
-                this.dasCounter = 0;
-            }
-        }, () => {
-            if (this.moveDir === 1) this.moveDir = 0;
-        });
-
-        bind('btn-down', () => {
-            this.softDropActive = true;
-        }, () => {
-            this.softDropActive = false;
-        });
-
-        bind('btn-hard-drop', () => {
-            if (this.paused || this.gameOver) {
-                if (this.gameOver) this.reset();
-                else this.resume();
-            } else {
-                this.hardDrop();
-            }
-        });
-        bind('btn-rotate-cw', () => this.rotate(1));
-        bind('btn-rotate-ccw', () => this.rotate(-1));
-        bind('btn-hold', () => this.hold());
-        bind('btn-pause', () => {
-            if (this.paused) this.resume();
-            else this.pause();
-        });
-    }
 
     updateStats() {
         if (this.score > this.highScore) {
