@@ -5,55 +5,153 @@
 // --- Constants ---
 const COLS = 10;
 const ROWS = 20;
-const BLOCK_SIZE = 30;
+const BLOCK_SIZE = 28;
 
-const COLORS = {
-    'I': '#00f0f0',
-    'O': '#f0f000',
-    'T': '#a000f0',
-    'S': '#00f000',
-    'Z': '#f00000',
-    'J': '#0000f0',
-    'L': '#f0a000',
-    'G': 'rgba(255, 255, 255, 0.15)' // Ghost
+const PIECE_SETS = {
+    3: {
+        'I3': [
+            [0, 0, 0],
+            [1, 1, 1],
+            [0, 0, 0]
+        ],
+        'L3': [
+            [1, 1],
+            [1, 0]
+        ]
+    },
+    4: {
+        'I': [
+            [0, 0, 0, 0],
+            [1, 1, 1, 1],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ],
+        'O': [
+            [1, 1],
+            [1, 1]
+        ],
+        'T': [
+            [0, 1, 0],
+            [1, 1, 1],
+            [0, 0, 0]
+        ],
+        'S': [
+            [0, 1, 1],
+            [1, 1, 0],
+            [0, 0, 0]
+        ],
+        'Z': [
+            [1, 1, 0],
+            [0, 1, 1],
+            [0, 0, 0]
+        ],
+        'J': [
+            [1, 0, 0],
+            [1, 1, 1],
+            [0, 0, 0]
+        ],
+        'L': [
+            [0, 0, 1],
+            [1, 1, 1],
+            [0, 0, 0]
+        ]
+    },
+    5: {
+        'F': [
+            [0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0],
+            [0, 1, 1, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'I5': [
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0],
+            [1, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'L5': [
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'P': [
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'N': [
+            [0, 0, 0, 0, 0],
+            [0, 0, 1, 1, 0],
+            [0, 0, 0, 1, 0],
+            [0, 0, 0, 1, 1],
+            [0, 0, 0, 0, 0]
+        ],
+        'T5': [
+            [0, 0, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'U': [
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 1, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'V': [
+            [0, 0, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'W': [
+            [0, 0, 0, 0, 0],
+            [1, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'X': [
+            [0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 1, 1, 1, 0],
+            [0, 0, 1, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'Y': [
+            [0, 0, 0, 0, 0],
+            [0, 0, 1, 0, 0],
+            [0, 1, 1, 1, 1],
+            [0, 0, 0, 0, 0],
+            [0, 0, 0, 0, 0]
+        ],
+        'Z5': [
+            [0, 0, 0, 0, 0],
+            [1, 1, 0, 0, 0],
+            [0, 1, 0, 0, 0],
+            [0, 1, 1, 0, 0],
+            [0, 0, 0, 0, 0]
+        ]
+    }
 };
 
-const SHAPES = {
-    'I': [
-        [0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]
-    ],
-    'O': [
-        [1, 1],
-        [1, 1]
-    ],
-    'T': [
-        [0, 1, 0],
-        [1, 1, 1],
-        [0, 0, 0]
-    ],
-    'S': [
-        [0, 1, 1],
-        [1, 1, 0],
-        [0, 0, 0]
-    ],
-    'Z': [
-        [1, 1, 0],
-        [0, 1, 1],
-        [0, 0, 0]
-    ],
-    'J': [
-        [1, 0, 0],
-        [1, 1, 1],
-        [0, 0, 0]
-    ],
-    'L': [
-        [0, 0, 1],
-        [1, 1, 1],
-        [0, 0, 0]
-    ]
+const SHAPES = PIECE_SETS[4]; // Default
+
+const COLORS = {
+    'I': '#00f0f0', 'O': '#f0f000', 'T': '#a000f0', 'S': '#00f000', 'Z': '#f00000', 'J': '#0000f0', 'L': '#f0a000',
+    'I3': '#00f0f0', 'L3': '#f0a000',
+    'F': '#00f000', 'I5': '#00f0f0', 'L5': '#f0a000', 'P': '#f0f000', 'N': '#a000f0', 'T5': '#f00000',
+    'U': '#0000f0', 'V': '#ff00ff', 'W': '#00ff00', 'X': '#ffffff', 'Y': '#ffff00', 'Z5': '#ff7f00',
+    'G': 'rgba(255, 255, 255, 0.15)'
 };
 
 // SRS Wall Kick Data
@@ -90,9 +188,9 @@ const KICK_TRANSITIONS = {
 let time = 0; // Global variable for lock delay
 
 class Tetrimino {
-    constructor(type) {
+    constructor(type, shapes) {
         this.type = type;
-        this.matrix = SHAPES[type].map(row => [...row]);
+        this.matrix = shapes[type].map(row => [...row]);
         this.resetPosition();
         this.rotation = 0; // 0, 1, 2, 3
         this.visualY = this.y;
@@ -108,15 +206,22 @@ class Tetrimino {
 
     resetPosition() {
         this.x = Math.floor(COLS / 2) - Math.ceil(this.matrix[0].length / 2);
-        this.y = (this.type === 'I') ? -1 : 0;
+        this.y = (this.type === 'I' || this.type === 'I5' || this.type === 'I3') ? -1 : 0;
     }
 
     rotateMatrix(dir) {
-        const result = this.matrix.map((_, i) =>
-            this.matrix.map(row => row[i])
-        );
-        if (dir > 0) result.forEach(row => row.reverse());
-        else result.reverse();
+        const size = this.matrix.length;
+        const result = Array.from({ length: size }, () => Array(size).fill(0));
+
+        for (let y = 0; y < size; y++) {
+            for (let x = 0; x < size; x++) {
+                if (dir > 0) {
+                    result[x][size - 1 - y] = this.matrix[y][x];
+                } else {
+                    result[size - 1 - x][y] = this.matrix[y][x];
+                }
+            }
+        }
         return result;
     }
 }
@@ -129,6 +234,9 @@ class Game {
         this.holdCtx = this.holdCanvas.getContext('2d');
         this.nextCanvas = document.getElementById('next-canvas');
         this.nextCtx = this.nextCanvas.getContext('2d');
+
+        this.canvas.width = COLS * BLOCK_SIZE;
+        this.canvas.height = ROWS * BLOCK_SIZE;
 
         this.grid = this.createGrid();
         this.score = 0;
@@ -152,6 +260,10 @@ class Game {
         this.lastMoveWasRotate = false;
         this.attack = 0;
         this.totalAttack = 0;
+        this.tSpinType = 0;
+
+        this.currentMode = 4;
+        this.shapes = PIECE_SETS[this.currentMode];
 
         this.dropCounter = 0;
         this.dropInterval = 1000;
@@ -163,8 +275,8 @@ class Game {
         this.gameOver = false;
 
         // DAS/ARR Settings (in ms)
-        this.DAS_DELAY = 170; // Delayed Auto Shift
-        this.ARR_SPEED = 30;  // Auto Repeat Rate
+        this.DAS_DELAY = 300; // Guideline: 0.3s (300ms) initial delay
+        this.ARR_SPEED = 55;  // Guideline: approx 0.5s for edge-to-edge (500ms/9 blocks)
         this.dasCounter = 0;
         this.arrCounter = 0;
         this.moveDir = 0; // -1: Left, 0: None, 1: Right
@@ -190,6 +302,29 @@ class Game {
         document.addEventListener('keydown', e => this.handleKeyDown(e));
         document.addEventListener('keyup', e => this.handleKeyUp(e));
         document.getElementById('restart-btn').addEventListener('click', () => this.reset());
+        document.getElementById('reset-data-btn').addEventListener('click', () => this.clearData());
+        document.getElementById('save-state-btn').addEventListener('click', () => this.saveGameState());
+        document.getElementById('load-state-btn').addEventListener('click', () => document.getElementById('load-file-input').click());
+        document.getElementById('load-file-input').addEventListener('change', (e) => this.loadGameState(e));
+
+        // Mode Switcher Events
+        const modeBtn = document.getElementById('mode-btn');
+        const modeMenu = document.getElementById('mode-menu');
+        modeBtn.addEventListener('click', () => modeMenu.classList.toggle('hidden'));
+        document.querySelectorAll('.mode-option').forEach(opt => {
+            opt.addEventListener('click', () => {
+                const mode = parseInt(opt.dataset.mode);
+                this.switchMode(mode);
+                modeMenu.classList.add('hidden');
+            });
+        });
+
+        // Close menu on outside click
+        document.addEventListener('click', (e) => {
+            if (!modeBtn.contains(e.target) && !modeMenu.contains(e.target)) {
+                modeMenu.classList.add('hidden');
+            }
+        });
 
 
 
@@ -204,7 +339,7 @@ class Game {
     fillNextQueue() {
         while (this.nextQueue.length < 6) {
             if (this.bag.length === 0) {
-                this.bag = ['I', 'O', 'T', 'S', 'Z', 'J', 'L'];
+                this.bag = Object.keys(this.shapes);
                 // Shuffle bag
                 for (let i = this.bag.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
@@ -215,8 +350,17 @@ class Game {
         }
     }
 
+    switchMode(mode) {
+        if (this.currentMode === mode) return;
+        this.currentMode = mode;
+        this.shapes = PIECE_SETS[mode];
+        document.getElementById('mode-btn').innerText = `MODE: ${mode}-BLOCK`;
+        this.reset();
+        this.showActionMessage(`${mode}-BLOCK MODE`, -1, 0);
+    }
+
     spawnPiece(type = null) {
-        this.piece = new Tetrimino(type || this.nextQueue.shift());
+        this.piece = new Tetrimino(type || this.nextQueue.shift(), this.shapes);
         time = 0; // Reset lock delay on spawn
         this.piece.visualX = this.piece.x;
         this.piece.visualY = this.piece.y;
@@ -283,39 +427,49 @@ class Game {
         const nextRotation = (startRotation + dir + 4) % 4;
         const matrix = this.piece.rotateMatrix(dir);
 
-        // SRS Wall Kick
-        const kickTable = (this.piece.type === 'I') ? WALL_KICK_I : WALL_KICK_J_L_T_S_Z;
-        const transitionKey = `${startRotation}-${nextRotation}`;
-        const kickIndex = KICK_TRANSITIONS[transitionKey];
-        const kicks = kickTable[kickIndex];
+        // SRS Wall Kick (Only for Tetrimino 4-block pieces)
+        if (this.currentMode === 4) {
+            const kickTable = (this.piece.type === 'I') ? WALL_KICK_I : WALL_KICK_J_L_T_S_Z;
+            const transitionKey = `${startRotation}-${nextRotation}`;
+            const kickIndex = KICK_TRANSITIONS[transitionKey];
+            const kicks = kickTable[kickIndex];
 
-        for (let i = 0; i < kicks.length; i++) {
-            const [kx, ky] = kicks[i];
-            if (!this.collide(matrix, { x: this.piece.x + kx, y: this.piece.y - ky })) {
-                this.piece.matrix = matrix;
-                this.piece.x += kx;
-                this.piece.y -= ky;
-                this.piece.rotation = nextRotation;
-
-                // T-Spin detection flag
-                if (this.piece.type === 'T') {
-                    this.tSpinType = this.checkTSpin(i); // i is the kick index
-                } else {
-                    this.tSpinType = 0;
+            for (let i = 0; i < kicks.length; i++) {
+                const [kx, ky] = kicks[i];
+                if (!this.collide(matrix, { x: this.piece.x + kx, y: this.piece.y - ky })) {
+                    this.applyRotation(matrix, kx, -ky, nextRotation, i);
+                    return;
                 }
-                this.lastMoveWasRotate = true;
-
-                // If on ground, increment lock move count and reset delay
-                this.piece.y++;
-                if (this.collide()) {
-                    this.piece.lockMoveCount++;
-                    this.piece.isMoving = true;
-                }
-                this.piece.y--;
-
-                return;
+            }
+        } else {
+            // Basic rotation for other modes
+            if (!this.collide(matrix)) {
+                this.applyRotation(matrix, 0, 0, nextRotation, -1);
             }
         }
+    }
+
+    applyRotation(matrix, dx, dy, nextRotation, kickIndex) {
+        this.piece.matrix = matrix;
+        this.piece.x += dx;
+        this.piece.y += dy;
+        this.piece.rotation = nextRotation;
+
+        // T-Spin detection flag (only for 4-block T piece)
+        if (this.piece.type === 'T') {
+            this.tSpinType = this.checkTSpin(kickIndex);
+        } else {
+            this.tSpinType = 0;
+        }
+        this.lastMoveWasRotate = true;
+
+        // If on ground, increment lock move count and reset delay
+        this.piece.y++;
+        if (this.collide()) {
+            this.piece.lockMoveCount++;
+            this.piece.isMoving = true;
+        }
+        this.piece.y--;
     }
 
     checkTSpin(kickIndex) {
@@ -532,28 +686,55 @@ class Game {
     }
 
     updateGravity() {
+        // NES-style Level progression: every 10 lines
+        const oldLevel = this.level;
         this.level = Math.floor(this.lines / 10) + 1;
 
-        // Refined Gravity Curve
-        if (this.level < 10) {
-            // Level 1-10: Standard Guideline Speed (1/60G to 10/60G)
-            this.gravityG = this.level / 60;
-        } else if (this.level < 30) {
-            // Level 10-30: Scaling towards 1.0G
-            this.gravityG = (10 / 60) + (this.level - 10) * 0.041;
-        } else if (this.level < 100) {
-            // Level 30-100: Scaling towards 20.0G (TGM style)
-            this.gravityG = 1.0 + (this.level - 30) * 0.27;
+        if (this.level > oldLevel) {
+            this.showActionMessage(`LEVEL ${this.level}`, -1, 0); // Trigger visual for level up
+        }
+
+        // NES Gravity Table (Frames per block)
+        // Levels 0-9, then groups for 10-12, 13-15, 16-18, 19-28
+        const nesFrames = [
+            48, 43, 38, 33, 28, 23, 18, 13, 8, 6, // Level 1-10 (NES 0-9)
+            5, 5, 5,                             // Level 11-13 (NES 10-12)
+            4, 4, 4,                             // Level 14-16 (NES 13-15)
+            3, 3, 3,                             // Level 17-19 (NES 16-18)
+            2, 2, 2, 2, 2, 2, 2, 2, 2            // Level 20-28 (NES 19-27)
+        ];
+
+        if (this.level < 29) {
+            this.gravityG = 1 / nesFrames[this.level - 1];
+        } else if (this.level < 235) {
+            // Level 29-234: Scaling from 1G (Level 29) towards 20G (Level 235)
+            // This represents the "ultra high speed" requested
+            this.gravityG = 1.0 + (this.level - 29) * (19.0 / (235 - 29));
         } else {
+            // Level 235+: Maximum speed (20G)
             this.gravityG = 20.0;
         }
 
-        // Calculate dropInterval based on G (G = blocks per frame, 1 frame = 16.66ms)
+        // dropInterval calculation (1000ms / (G * 60fps))
         this.dropInterval = 1000 / (this.gravityG * 60);
 
-        // Shorten lock delay at high levels (Guideline/TGM)
-        if (this.level > 50) {
-            this.lockDelay = Math.max(150, 500 - (this.level - 50) * 5);
+        // --- Dynamic DAS/ARR update based on level ---
+        // Guide-line baseline at level 1, scaling to pro speeds at high levels
+        if (this.level < 29) {
+            this.DAS_DELAY = Math.max(160, 300 - (this.level - 1) * 5);
+            this.ARR_SPEED = Math.max(33, 55 - (this.level - 1) * 0.8);
+        } else {
+            this.DAS_DELAY = Math.max(120, 160 - (this.level - 29) * 0.2);
+            this.ARR_SPEED = Math.max(16, 33 - (this.level - 29) * 0.1);
+        }
+
+        // Lockdown (遊び時間) reduction - Shorten lock delay as level increases
+        if (this.level >= 29) {
+            // Extreme speed: very short lock delay (150ms -> 100ms)
+            this.lockDelay = Math.max(100, 200 - (this.level - 29) * 1);
+        } else if (this.level > 10) {
+            // Gradual reduction from 10 to 29
+            this.lockDelay = Math.max(200, 500 - (this.level - 10) * 15);
         } else {
             this.lockDelay = 500;
         }
@@ -684,6 +865,99 @@ class Game {
         this.updateStats();
         this.resume();
         this.drawHold();
+    }
+
+    clearData() {
+        if (confirm("ハイスコアを含むすべてのゲームデータを消去しますか？\n(This will reset your high score and data)")) {
+            localStorage.removeItem('lolits-highscore');
+            this.highScore = 0;
+            this.updateStats();
+            alert("データを消去しました。");
+        }
+    }
+
+    saveGameState() {
+        const state = {
+            mode: this.currentMode,
+            grid: this.grid,
+            score: this.score,
+            lines: this.lines,
+            level: this.level,
+            bag: this.bag,
+            nextQueue: this.nextQueue,
+            holdPiece: this.holdPiece,
+            canHold: this.canHold,
+            totalAttack: this.totalAttack,
+            piece: this.piece ? {
+                type: this.piece.type,
+                matrix: this.piece.matrix,
+                x: this.piece.x,
+                y: this.piece.y,
+                rotation: this.piece.rotation
+            } : null
+        };
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `lolits_state_lv${this.level}_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    loadGameState(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const state = JSON.parse(e.target.result);
+
+                // Initialize mode-specific shapes
+                this.currentMode = state.mode || 4;
+                this.shapes = PIECE_SETS[this.currentMode];
+                document.getElementById('mode-btn').innerText = `MODE: ${this.currentMode}-BLOCK`;
+
+                this.grid = state.grid;
+                this.score = state.score;
+                this.lines = state.lines;
+                this.level = state.level;
+                this.bag = [...state.bag];
+                this.nextQueue = [...state.nextQueue];
+                this.holdPiece = state.holdPiece;
+                this.canHold = state.canHold;
+                this.totalAttack = state.totalAttack || 0;
+
+                if (state.piece) {
+                    this.piece = new Tetrimino(state.piece.type, this.shapes);
+                    this.piece.matrix = state.piece.matrix;
+                    this.piece.x = state.piece.x;
+                    this.piece.y = state.piece.y;
+                    this.piece.rotation = state.piece.rotation;
+                    this.piece.visualX = this.piece.x;
+                    this.piece.visualY = this.piece.y;
+                }
+
+                this.updateGravity();
+                this.updateStats();
+                this.drawHold();
+                this.draw();
+
+                // Clear input
+                event.target.value = '';
+
+                if (this.paused) {
+                    this.resume();
+                }
+
+                this.showActionMessage("LOADED", -1, 0);
+            } catch (err) {
+                console.error(err);
+                alert("ファイルの読み込みに失敗しました。正しいJSON形式ではありません。");
+            }
+        };
+        reader.readAsText(file);
     }
 
 
@@ -836,7 +1110,7 @@ class Game {
             x: x * BLOCK_SIZE,
             startY: startY * BLOCK_SIZE,
             endY: endY * BLOCK_SIZE,
-            width: SHAPES[type][0].length * BLOCK_SIZE,
+            width: this.shapes[type][0].length * BLOCK_SIZE,
             life: 1.0,
             color: COLORS[type]
         });
@@ -947,7 +1221,7 @@ class Game {
     drawNext() {
         this.nextCtx.clearRect(0, 0, this.nextCanvas.width, this.nextCanvas.height);
         this.nextQueue.slice(0, 3).forEach((type, i) => {
-            const matrix = SHAPES[type];
+            const matrix = this.shapes[type];
             const offsetX = (4 - matrix[0].length) / 2;
             matrix.forEach((row, y) => {
                 row.forEach((value, x) => {
@@ -962,7 +1236,7 @@ class Game {
     drawHold() {
         this.holdCtx.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
         if (this.holdPiece) {
-            const matrix = SHAPES[this.holdPiece];
+            const matrix = this.shapes[this.holdPiece];
             const offsetX = (4 - matrix[0].length) / 2;
             matrix.forEach((row, y) => {
                 row.forEach((value, x) => {

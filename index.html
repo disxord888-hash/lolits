@@ -62,11 +62,17 @@
                         <span class="stat-value" id="attack">0</span>
                     </div>
                 </div>
+                <div class="data-mgmt">
+                    <button id="save-state-btn" class="btn btn-small glass">SAVE STATE</button>
+                    <button id="load-state-btn" class="btn btn-small glass">LOAD STATE</button>
+                    <input type="file" id="load-file-input" style="display: none;" accept=".json">
+                    <button id="reset-data-btn" class="btn btn-small glass btn-danger">RESET DATA</button>
+                </div>
             </div>
 
             <!-- Center: Field -->
             <div class="main-field glass">
-                <canvas id="game-canvas" width="300" height="600"></canvas>
+                <canvas id="game-canvas" width="280" height="560"></canvas>
                 <div id="game-overlay" class="overlay hidden">
                     <div class="overlay-content">
                         <h1 id="overlay-title">PAUSED</h1>
@@ -79,6 +85,14 @@
 
             <!-- Right Side: Next Pieces -->
             <div class="side-panel right-panel">
+                <div class="mode-switcher">
+                    <button id="mode-btn" class="btn btn-small glass">MODE: 4-BLOCK</button>
+                    <div id="mode-menu" class="mode-menu glass hidden">
+                        <div class="mode-option" data-mode="3">3-BLOCK (TROMINO)</div>
+                        <div class="mode-option" data-mode="4">4-BLOCK (TETRIMINO)</div>
+                        <div class="mode-option" data-mode="5">5-BLOCK (PENTOMINO)</div>
+                    </div>
+                </div>
                 <div class="panel-section glass next-container">
                     <h2 class="label">NEXT</h2>
                     <div class="next-display" id="next-display">
