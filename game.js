@@ -87,14 +87,17 @@ const KICK_TRANSITIONS = {
     '3-0': 6, '0-3': 7
 };
 
-class Piece {
+let time = 0; // Global variable for lock delay
+
+class Tetrimino {
     constructor(type) {
         this.type = type;
         this.matrix = SHAPES[type].map(row => [...row]);
         this.resetPosition();
         this.rotation = 0; // 0, 1, 2, 3
-        this.visualX = this.x;
         this.visualY = this.y;
+        this.isMoving = false; // Whether the block is currently moving or rotating
+        this.lockMoveCount = 0; // Number of moves/rotates while on ground (guide-line limit: 15)
     }
 
     updateVisuals(deltaTime) {
@@ -144,6 +147,7 @@ class Game {
         this.shake = 0;
         this.beams = [];
         this.flashes = [];
+        this.lockFlashes = [];
         this.isTSpin = false;
         this.lastMoveWasRotate = false;
         this.attack = 0;
@@ -151,7 +155,9 @@ class Game {
 
         this.dropCounter = 0;
         this.dropInterval = 1000;
+        this.lockDelay = 500; // Standard lock delay (ms)
         this.lastTime = 0;
+        this.gravityG = 1 / 60; // Blocks per frame
 
         this.paused = true;
         this.gameOver = false;
@@ -163,6 +169,13 @@ class Game {
         this.arrCounter = 0;
         this.moveDir = 0; // -1: Left, 0: None, 1: Right
         this.softDropActive = false;
+
+        this.placedPieces = 0;
+        this.gameStartTime = Date.now();
+        this.lastPieceLockTime = Date.now();
+        this.currentPPS = 0;
+
+        this.highScore = parseInt(localStorage.getItem('lolits-highscore')) || 0;
 
         this.init();
     }
@@ -203,11 +216,14 @@ class Game {
     }
 
     spawnPiece(type = null) {
-        this.piece = new Piece(type || this.nextQueue.shift());
+        this.piece = new Tetrimino(type || this.nextQueue.shift());
+        time = 0; // Reset lock delay on spawn
         this.piece.visualX = this.piece.x;
         this.piece.visualY = this.piece.y;
         this.fillNextQueue();
         this.canHold = true;
+        this.isTSpin = false; // Reset T-Spin flag on spawn
+        this.lastMoveWasRotate = false;
 
         if (this.collide()) {
             this.gameOver = true;
@@ -283,23 +299,32 @@ class Game {
 
                 // T-Spin detection flag
                 if (this.piece.type === 'T') {
-                    this.isTSpin = this.checkTSpin();
+                    this.tSpinType = this.checkTSpin(i); // i is the kick index
                 } else {
-                    this.isTSpin = false;
+                    this.tSpinType = 0;
                 }
                 this.lastMoveWasRotate = true;
+
+                // If on ground, increment lock move count and reset delay
+                this.piece.y++;
+                if (this.collide()) {
+                    this.piece.lockMoveCount++;
+                    this.piece.isMoving = true;
+                }
+                this.piece.y--;
+
                 return;
             }
         }
     }
 
-    checkTSpin() {
-        // T-Spin simplified rule: 3 corners occupied
+    checkTSpin(kickIndex) {
+        // 3-corner rule: T-center is at (x+1, y+1)
         const corners = [
-            { x: this.piece.x, y: this.piece.y },
-            { x: this.piece.x + 2, y: this.piece.y },
-            { x: this.piece.x, y: this.piece.y + 2 },
-            { x: this.piece.x + 2, y: this.piece.y + 2 }
+            { x: this.piece.x, y: this.piece.y },     // Top-left
+            { x: this.piece.x + 2, y: this.piece.y },     // Top-right
+            { x: this.piece.x, y: this.piece.y + 2 }, // Bottom-left
+            { x: this.piece.x + 2, y: this.piece.y + 2 }  // Bottom-right
         ];
 
         let occupied = 0;
@@ -309,7 +334,35 @@ class Game {
             }
         });
 
-        return occupied >= 3;
+        if (occupied < 3) return 0;
+
+        // SRS 5th kick (index 4) is always full T-Spin
+        if (kickIndex === 4) return 2;
+
+        // Check if it's "Mini"
+        // Front corners are the two corners toward the T-head
+        // Rotation 0: Front is (0,0) and (2,0)
+        let isMini = false;
+        const rot = this.piece.rotation;
+        const frontOverlap = [
+            [0, 1], // Rot 0 (North): Corners 0 and 1 are front
+            [1, 3], // Rot 1 (East): Corners 1 and 3 are front
+            [2, 3], // Rot 2 (South): Corners 2 and 3 are front
+            [0, 2]  // Rot 3 (West): Corners 0 and 2 are front
+        ][rot];
+
+        let frontOccupied = 0;
+        frontOverlap.forEach(idx => {
+            const p = corners[idx];
+            if (p.x < 0 || p.x >= COLS || p.y >= ROWS || (p.y >= 0 && this.grid[p.y][p.x] !== 0)) {
+                frontOccupied++;
+            }
+        });
+
+        // If only one front corner is occupied, it's Mini
+        if (frontOccupied < 2) return 1;
+
+        return 2; // Full T-Spin
     }
 
     drop(isManual = false) {
@@ -317,9 +370,10 @@ class Game {
         this.piece.y++;
         if (this.collide()) {
             this.piece.y--;
-            this.lock(true); // Treat both auto and manual soft drop as "weak impact"
+            // Do not lock immediately here; let the lock delay handle it
         } else {
             this.lastMoveWasRotate = false;
+            time = 0; // Reset lock delay on successful move down
             if (isManual) {
                 this.score += 2; // Soft drop points
                 this.updateStats();
@@ -348,121 +402,160 @@ class Game {
     }
 
     lock(isSoftDrop = false) {
+        // Create lock flash effect before merging/spawning
+        this.piece.matrix.forEach((row, y) => {
+            row.forEach((value, x) => {
+                if (value !== 0) {
+                    this.lockFlashes.push({
+                        x: this.piece.x + x,
+                        y: this.piece.y + y,
+                        life: 1.0,
+                        color: COLORS[this.piece.type]
+                    });
+                }
+            });
+        });
+
         this.merge();
+        this.placedPieces++; // Increment pieces placed
+
+        // Calculate Instant PPS (Speed of the last piece)
+        const now = Date.now();
+        const pieceTime = (now - this.lastPieceLockTime) / 1000;
+        if (pieceTime > 0) {
+            this.currentPPS = 1 / pieceTime;
+        }
+        this.lastPieceLockTime = now;
+
         // Check T-Spin status: must be T-piece and last move was rotate
-        const tspin = this.piece.type === 'T' && this.lastMoveWasRotate && this.isTSpin;
-        this.clearLines(tspin, isSoftDrop);
+        const tspinResult = (this.piece.type === 'T' && this.lastMoveWasRotate) ? this.tSpinType : 0;
+        this.clearLines(tspinResult, isSoftDrop);
         this.spawnPiece();
         this.updateStats();
         this.lastMoveWasRotate = false;
-        this.isTSpin = false;
+        this.tSpinType = 0;
     }
 
-    clearLines(tspin = false, isSoftDrop = false) {
-        let linesCleared = 0;
-        let clearedRows = [];
-        outer: for (let y = ROWS - 1; y >= 0; y--) {
-            for (let x = 0; x < COLS; x++) {
-                if (this.grid[y][x] === 0) continue outer;
+    clearLines(tspinResult = 0, isSoftDrop = false) {
+        let fullRows = [];
+        for (let y = ROWS - 1; y >= 0; y--) {
+            if (this.grid[y].every(v => v !== 0)) {
+                fullRows.push(y);
             }
-            clearedRows.push(y);
-            const row = this.grid.splice(y, 1)[0].fill(0);
-            this.grid.unshift(row);
-            y++;
-            linesCleared++;
         }
 
-        if (linesCleared > 0) {
-            // Trigger effects for each cleared row
-            clearedRows.forEach(y => {
+        const linesCleared = fullRows.length;
+        const isTSpin = tspinResult > 0;
+        const isMini = tspinResult === 1;
+
+        if (linesCleared > 0 || isTSpin) {
+            // Determine if it's a "Split" or "One-Two" (Sega Style)
+            const isNonContiguous = linesCleared > 1 && (Math.max(...fullRows) - Math.min(...fullRows) + 1) > linesCleared;
+
+            // Remove full rows
+            fullRows.sort((a, b) => a - b).forEach(y => {
+                this.grid.splice(y, 1);
+                this.grid.unshift(Array(COLS).fill(0));
+            });
+
+            // Trigger effects
+            fullRows.forEach(y => {
                 this.createLineClearParticles(y, isSoftDrop ? 0.3 : 1.0);
                 this.flashes.push({ y, life: isSoftDrop ? 0.4 : 1.0 });
             });
             const baseShake = linesCleared === 4 ? 20 : 10;
             this.shake = isSoftDrop ? baseShake * 0.3 : baseShake;
-        }
 
-        if (linesCleared > 0 || tspin) {
-            // Update Combo
+            // Score Calculation
             if (linesCleared > 0) {
                 this.combo++;
-            }
-
-            let basicScore = 0;
-            let currentAttack = 0;
-            let renScore = 0;
-            let additionalScore = 0;
-
-            // 1. Basic Score & Attack Calculation
-            if (tspin) {
-                const tspinBase = [0, 2, 4, 6];
-                currentAttack = tspinBase[Math.min(linesCleared, 3)];
-                const tspinPoints = [400, 800, 1200, 1600];
-                basicScore = tspinPoints[Math.min(linesCleared, 3)] * this.level;
             } else {
-                const lineBase = [0, 0, 1, 2, 4];
-                currentAttack = lineBase[linesCleared];
-                const lineBases = [0, 40, 100, 300, 1200];
-                basicScore = lineBases[linesCleared] * this.level;
+                this.combo = -1;
             }
 
-            // 2. REN (Combo) Score
-            if (this.combo > 0) {
-                renScore = 50 * this.combo * this.level;
-                // Attack bonus
-                const renAttackTable = [0, 0, 1, 1, 2, 2, 3, 3, 4, 4, 4, 5, 5, 5, 5];
-                currentAttack += renAttackTable[Math.min(this.combo, 14)];
-            }
-
-            // 3. Perfect Clear (Additional Score)
-            const isPerfect = this.checkAllClear();
-            if (isPerfect) {
-                currentAttack = 10;
-                additionalScore = 2000 * this.level;
-            }
-
-            // 4. Back-to-Back Multiplier
-            const isTetris = linesCleared === 4;
-            const isDifficult = tspin || isTetris;
-            let b2bMultiplier = 1.0;
             let actionText = "";
+            const isDifficult = linesCleared === 4 || isTSpin;
+
+            if (isTSpin) {
+                const prefix = isMini ? "T-SPIN MINI" : "T-SPIN";
+                const suffixes = ["", " SINGLE", " DOUBLE", " TRIPLE"];
+                actionText = prefix + suffixes[Math.min(linesCleared, 3)];
+            } else if (linesCleared === 4) {
+                actionText = "LOLITS";
+            } else if (isNonContiguous) {
+                if (linesCleared === 2) actionText = "SPLIT";
+                else if (linesCleared === 3) actionText = "ONE-TWO";
+            } else {
+                const names = ["", "SINGLE", "DOUBLE", "TRIPLE", "LOLITS"];
+                actionText = names[linesCleared];
+            }
 
             if (isDifficult) {
                 if (this.b2b) {
-                    b2bMultiplier = 1.5;
-                    currentAttack += 1;
-                    actionText = "B2B ";
+                    actionText = "B2B " + actionText;
                 }
                 this.b2b = true;
             } else if (linesCleared > 0) {
                 this.b2b = false;
             }
 
-            // Final Formula: ((Basic + REN) * B2B + Additional)
-            const finalPoints = Math.floor((basicScore + renScore) * b2bMultiplier + additionalScore);
-            this.score += finalPoints;
+            // Score points based on guideline approx
+            let points = 0;
+            const b2bMult = this.b2b ? 1.5 : 1.0;
 
-            if (isPerfect) {
-                actionText = "PERFECT CLEAR";
-            } else {
-                if (tspin) {
-                    actionText += (linesCleared === 0 ? "T-SPIN" : (linesCleared === 1 ? "T-SPIN SINGLE" : (linesCleared === 2 ? "T-SPIN DOUBLE" : "T-SPIN TRIPLE")));
-                } else if (isTetris) {
-                    actionText += "LOLITS";
+            if (isTSpin) {
+                if (isMini) {
+                    const miniPoints = [100, 200, 400];
+                    points = miniPoints[linesCleared] || 100;
+                } else {
+                    const tspinPoints = [400, 800, 1200, 1600];
+                    points = tspinPoints[linesCleared];
                 }
+            } else {
+                const normalPoints = [0, 100, 300, 500, 800];
+                points = normalPoints[linesCleared];
             }
+
+            const comboBonus = Math.max(0, this.combo) * 50;
+            this.score += Math.floor((points * b2bMult + comboBonus) * this.level);
 
             if (actionText || this.combo > 0) {
-                this.showActionMessage(actionText, this.combo, currentAttack > 0 ? currentAttack : null);
+                this.showActionMessage(actionText, this.combo, linesCleared > 0 ? points : 0);
             }
 
-            this.totalAttack += currentAttack;
             this.lines += linesCleared;
-            this.level = Math.floor(this.lines / 10) + 1;
-            this.dropInterval = Math.max(100, 1000 - (this.level - 1) * 100);
+            this.updateGravity();
             this.updateStats();
         } else {
             this.combo = -1;
+        }
+    }
+
+    updateGravity() {
+        this.level = Math.floor(this.lines / 10) + 1;
+
+        // Refined Gravity Curve
+        if (this.level < 10) {
+            // Level 1-10: Standard Guideline Speed (1/60G to 10/60G)
+            this.gravityG = this.level / 60;
+        } else if (this.level < 30) {
+            // Level 10-30: Scaling towards 1.0G
+            this.gravityG = (10 / 60) + (this.level - 10) * 0.041;
+        } else if (this.level < 100) {
+            // Level 30-100: Scaling towards 20.0G (TGM style)
+            this.gravityG = 1.0 + (this.level - 30) * 0.27;
+        } else {
+            this.gravityG = 20.0;
+        }
+
+        // Calculate dropInterval based on G (G = blocks per frame, 1 frame = 16.66ms)
+        this.dropInterval = 1000 / (this.gravityG * 60);
+
+        // Shorten lock delay at high levels (Guideline/TGM)
+        if (this.level > 50) {
+            this.lockDelay = Math.max(150, 500 - (this.level - 50) * 5);
+        } else {
+            this.lockDelay = 500;
         }
     }
 
@@ -544,6 +637,15 @@ class Game {
             this.piece.x -= dir;
             return false;
         }
+
+        // If on ground, increment lock move count and reset delay
+        this.piece.y++;
+        if (this.collide()) {
+            this.piece.lockMoveCount++;
+            this.piece.isMoving = true;
+        }
+        this.piece.y--;
+
         return true;
     }
 
@@ -564,6 +666,7 @@ class Game {
         this.score = 0;
         this.lines = 0;
         this.level = 1;
+        this.updateGravity();
         this.bag = [];
         this.nextQueue = [];
         this.holdPiece = null;
@@ -574,6 +677,10 @@ class Game {
         this.totalAttack = 0;
         this.fillNextQueue();
         this.spawnPiece();
+        this.placedPieces = 0;
+        this.gameStartTime = Date.now();
+        this.lastPieceLockTime = Date.now();
+        this.currentPPS = 0;
         this.updateStats();
         this.resume();
         this.drawHold();
@@ -642,6 +749,12 @@ class Game {
     }
 
     updateStats() {
+        if (this.score > this.highScore) {
+            this.highScore = this.score;
+            localStorage.setItem('lolits-highscore', this.highScore);
+        }
+
+        document.getElementById('high-score').innerText = this.highScore.toString().padStart(6, '0');
         document.getElementById('score').innerText = this.score.toString().padStart(6, '0');
         document.getElementById('lines').innerText = this.lines;
         document.getElementById('level').innerText = this.level;
@@ -653,6 +766,13 @@ class Game {
         } else {
             comboEl.classList.remove('combo-active');
         }
+
+        // --- Update Metrics ---
+        // Display passive gravity G
+        document.getElementById('pps').innerText = this.currentPPS.toFixed(2);
+        document.getElementById('gravity-g').innerText = this.gravityG.toFixed(4);
+        document.getElementById('piece-count').innerText = this.placedPieces;
+        document.getElementById('tile-count').innerText = this.placedPieces * 4;
     }
 
     showOverlay(title, msg) {
@@ -668,7 +788,12 @@ class Game {
     showActionMessage(text, combo, attack) {
         const el = document.getElementById('action-msg');
         let content = "";
-        if (text) content += `<div>${text}</div>`;
+
+        // --- Special LOLITS Styling ---
+        const isLolits = text.includes("LOLITS");
+        const textClass = isLolits ? "lolits-text" : "";
+
+        if (text) content += `<div class="${textClass}">${text}</div>`;
         if (combo > 0) content += `<div class="combo-msg">${combo} COMBO</div>`;
         if (attack > 0) content += `<div class="attack-msg">+${attack} ATTACK</div>`;
 
@@ -701,9 +826,10 @@ class Game {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         this.drawGrid();
         this.drawFlashes();
+        this.drawLockFlashes();
         this.drawBeams();
         this.drawGhost();
-        this.drawPiece(this.piece, this.ctx);
+        this.drawTetrimino(this.piece, this.ctx);
         this.drawParticles();
         this.drawNext();
 
@@ -722,16 +848,33 @@ class Game {
         });
     }
 
-    drawPiece(piece, ctx, offset = { x: 0, y: 0 }) {
+    drawTetrimino(piece, ctx, offset = { x: 0, y: 0 }) {
         const xPos = piece.visualX || piece.x;
         const yPos = piece.visualY || piece.y;
         piece.matrix.forEach((row, y) => {
             row.forEach((value, x) => {
                 if (value !== 0) {
-                    this.drawBlock(ctx, x + xPos + offset.x, y + yPos + offset.y, COLORS[piece.type]);
+                    const blockColor = COLORS[piece.type];
+                    this.drawBlock(ctx, x + xPos + offset.x, y + yPos + offset.y, blockColor);
                 }
             });
         });
+    }
+
+    drawLockFlashes() {
+        this.ctx.save();
+        this.lockFlashes.forEach((f, i) => {
+            this.ctx.globalAlpha = f.life;
+            this.ctx.globalCompositeOperation = 'lighter';
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.shadowBlur = 20 * f.life;
+            this.ctx.shadowColor = '#ffffff';
+            this.ctx.fillRect(f.x * BLOCK_SIZE, f.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+
+            f.life -= 0.1;
+            if (f.life <= 0) this.lockFlashes.splice(i, 1);
+        });
+        this.ctx.restore();
     }
 
     createImpactParticles(x, y, type) {
@@ -900,11 +1043,11 @@ class Game {
         ctx.shadowBlur = 0;
     }
 
-    update(time = 0) {
+    update(timestamp = 0) {
         if (this.paused || this.gameOver) return;
 
-        const deltaTime = time - this.lastTime;
-        this.lastTime = time;
+        const deltaTime = timestamp - this.lastTime;
+        this.lastTime = timestamp;
 
         // Horizontal Movement (DAS/ARR)
         if (this.moveDir !== 0) {
@@ -912,7 +1055,9 @@ class Game {
             if (this.dasCounter >= this.DAS_DELAY) {
                 this.arrCounter += deltaTime;
                 if (this.arrCounter >= this.ARR_SPEED) {
-                    this.moveSide(this.moveDir);
+                    if (this.moveSide(this.moveDir)) {
+                        this.piece.isMoving = true;
+                    }
                     this.arrCounter = 0;
                 }
             }
@@ -920,9 +1065,52 @@ class Game {
 
         // Auto Drop
         this.dropCounter += deltaTime;
-        const currentInterval = (this.softDropActive) ? 30 : this.dropInterval;
-        if (this.dropCounter > currentInterval) {
-            this.drop(this.softDropActive);
+        // Soft drop speed is at least 20x faster than current gravity, or at least 1G
+        const softDropG = Math.max(this.gravityG * 20, 1.0);
+        const softDropInterval = 1000 / (softDropG * 60);
+        const currentInterval = (this.softDropActive) ? softDropInterval : this.dropInterval;
+
+        if (this.gravityG >= 20.0 && !this.softDropActive) {
+            // 20G: Instant drop to ground
+            while (!this.collide()) {
+                this.piece.y++;
+            }
+            this.piece.y--;
+        } else {
+            while (this.dropCounter >= currentInterval) {
+                this.drop(this.softDropActive);
+                if (this.gravityG < 1.0 || this.softDropActive) break;
+                this.dropCounter -= this.dropInterval;
+            }
+        }
+
+        // Lock Delay Logic
+        if (this.piece) {
+            this.piece.y++;
+            const onGround = this.collide();
+            this.piece.y--;
+
+            if (onGround) {
+                if (this.piece.isMoving) {
+                    time = 0; // Reset delay while moving or rotating (but limited by lockMoveCount)
+                } else {
+                    time += deltaTime;
+                    if (time >= this.lockDelay) {
+                        this.lock(this.softDropActive);
+                        time = 0;
+                    }
+                }
+
+                // Guideline rule: Force lock after 15 moves/rotations
+                if (this.piece.lockMoveCount >= 15) {
+                    this.lock(this.softDropActive);
+                    time = 0;
+                }
+            } else {
+                time = 0;
+                this.piece.lockMoveCount = 0; // Reset if it leaves the ground
+            }
+            this.piece.isMoving = false; // Reset for next frame
         }
 
         // Update Shake & Visuals

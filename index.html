@@ -33,6 +33,10 @@
                 </div>
                 <div class="panel-section glass stats-container">
                     <div class="stat-item">
+                        <span class="stat-label">HIGH SCORE</span>
+                        <span class="stat-value" id="high-score">000000</span>
+                    </div>
+                    <div class="stat-item">
                         <span class="stat-label">SCORE</span>
                         <span class="stat-value" id="score">000000</span>
                     </div>
@@ -74,6 +78,26 @@
                     <h2 class="label">NEXT</h2>
                     <div class="next-display" id="next-display">
                         <canvas id="next-canvas" width="100" height="300"></canvas>
+                    </div>
+                </div>
+
+                <!-- New Metrics Display -->
+                <div class="panel-section glass metrics-container">
+                    <div class="metric-item">
+                        <span class="metric-label">PPS (BLOCK/S)</span>
+                        <span class="metric-value" id="pps">0.00</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">GRAVITY (G)</span>
+                        <span class="metric-value" id="gravity-g">0.00</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">PIECES</span>
+                        <span class="metric-value" id="piece-count">0</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">TILES</span>
+                        <span class="metric-value" id="tile-count">0</span>
                     </div>
                 </div>
             </div>
