@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Tetris - World Guideline</title>
+    <meta name="description"
+        content="A premium Tetris experience following the World Guideline rules. Features SRS, Hold, Next Queue, and Ghost blocks.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div id="app">
+        <div class="background-effects">
+            <div class="blob blob-1"></div>
+            <div class="blob blob-2"></div>
+        </div>
+
+        <div class="game-container">
+            <!-- Left Side: Hold and Stats -->
+            <div class="side-panel left-panel">
+                <div class="panel-section glass hold-container">
+                    <h2 class="label">HOLD</h2>
+                    <div class="hold-display" id="hold-display">
+                        <canvas id="hold-canvas" width="100" height="100"></canvas>
+                    </div>
+                </div>
+                <div class="panel-section glass stats-container">
+                    <div class="stat-item">
+                        <span class="stat-label">SCORE</span>
+                        <span class="stat-value" id="score">000000</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">LINES</span>
+                        <span class="stat-value" id="lines">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">LEVEL</span>
+                        <span class="stat-value" id="level">1</span>
+                    </div>
+                    <div class="stat-item combo-item">
+                        <span class="stat-label">COMBO</span>
+                        <span class="stat-value" id="combo">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">ATTACK</span>
+                        <span class="stat-value" id="attack">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center: Field -->
+            <div class="main-field glass">
+                <canvas id="game-canvas" width="300" height="600"></canvas>
+                <div id="game-overlay" class="overlay hidden">
+                    <div class="overlay-content">
+                        <h1 id="overlay-title">PAUSED</h1>
+                        <p id="overlay-msg">Press SPACE to Start</p>
+                        <button id="restart-btn" class="btn">RESTART</button>
+                    </div>
+                </div>
+                <div id="action-msg" class="action-msg"></div>
+            </div>
+
+            <!-- Right Side: Next Pieces -->
+            <div class="side-panel right-panel">
+                <div class="panel-section glass next-container">
+                    <h2 class="label">NEXT</h2>
+                    <div class="next-display" id="next-display">
+                        <canvas id="next-canvas" width="100" height="300"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls-guide glass">
+            <div class="guide-item"><span>← / →</span> Move</div>
+            <div class="guide-item"><span>↑ / X / Z</span> Rotate</div>
+            <div class="guide-item"><span>↓</span> Soft Drop</div>
+            <div class="guide-item"><span>Space</span> Hard Drop</div>
+            <div class="guide-item"><span>C</span> Hold</div>
+            <div class="guide-item"><span>P</span> Pause</div>
+        </div>
+
+        <div class="mobile-controls">
+            <div class="dpad">
+                <button id="btn-left" class="control-btn glass">←</button>
+                <div class="dpad-vertical">
+                    <button id="btn-hard-drop" class="control-btn glass">↑</button>
+                    <button id="btn-down" class="control-btn glass">↓</button>
+                </div>
+                <button id="btn-right" class="control-btn glass">→</button>
+            </div>
+            <div class="action-group">
+                <div class="rotation-buttons">
+                    <button id="btn-rotate-ccw" class="control-btn glass circular">Z</button>
+                    <button id="btn-rotate-cw" class="control-btn glass circular">X</button>
+                </div>
+                <div class="utility-buttons">
+                    <button id="btn-hold" class="control-btn glass">HOLD</button>
+                    <button id="btn-pause" class="control-btn glass">PAUSE</button>
+                </div>
+            </div>
+        </div>
+
+        <footer class="trademark-footer">
+            <p>Tetris ® & © 1985–2024 Tetris Holding. Tetris logos, Tetris theme song and Tetriminos are trademarks of
+                Tetris Holding. All Rights Reserved.</p>
+        </footer>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+
+</html>
