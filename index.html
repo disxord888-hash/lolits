@@ -17,10 +17,7 @@
 
 <body>
     <div id="app">
-        <div class="mobile-warning glass">
-            <h1>PC ONLY</h1>
-            <p>This game is optimized for keyboard controls. Please play on a computer.</p>
-        </div>
+
 
         <div class="background-effects">
             <div class="blob blob-1"></div>
@@ -61,6 +58,14 @@
                         <span class="stat-label">ATTACK</span>
                         <span class="stat-value" id="attack">0</span>
                     </div>
+                    <div class="stat-item timer-item" id="timer-container">
+                        <span class="stat-label">TIMER</span>
+                        <span class="stat-value" id="timer">00:00.00</span>
+                    </div>
+                    <div class="stat-item rank-item" id="rank-container">
+                        <span class="stat-label">CURRENT RANK</span>
+                        <span class="stat-value small-text" id="current-rank">スタート地点</span>
+                    </div>
                 </div>
                 <div class="data-mgmt">
                     <button id="save-state-btn" class="btn btn-small glass">SAVE STATE</button>
@@ -77,7 +82,10 @@
                     <div class="overlay-content">
                         <h1 id="overlay-title">PAUSED</h1>
                         <p id="overlay-msg">Press SPACE to Start</p>
-                        <button id="restart-btn" class="btn">RESTART</button>
+                        <div class="overlay-buttons">
+                            <button id="restart-btn" class="btn">RESTART</button>
+                            <button id="surrender-btn" class="btn btn-danger">SURRENDER</button>
+                        </div>
                     </div>
                 </div>
                 <div id="action-msg" class="action-msg"></div>
@@ -91,6 +99,16 @@
                         <div class="mode-option" data-mode="3">3-BLOCK (TROMINO)</div>
                         <div class="mode-option" data-mode="4">4-BLOCK (TETRIMINO)</div>
                         <div class="mode-option" data-mode="5">5-BLOCK (PENTOMINO)</div>
+                        <div class="mode-option" data-mode="6">6-BLOCK (HEXOMINO)</div>
+                    </div>
+                </div>
+                <div class="mode-switcher goal-switcher">
+                    <button id="goal-btn" class="btn btn-small glass">GOAL: ENDLESS</button>
+                    <div id="goal-menu" class="mode-menu glass hidden">
+                        <div class="goal-option" data-goal="0">ENDLESS</div>
+                        <div class="goal-option" data-goal="40">40 LINES</div>
+                        <div class="goal-option" data-goal="80">80 LINES</div>
+                        <div class="goal-option" data-goal="120">120 LINES</div>
                     </div>
                 </div>
                 <div class="panel-section glass next-container">
@@ -117,6 +135,26 @@
                     <div class="metric-item">
                         <span class="metric-label">TILES</span>
                         <span class="metric-value" id="tile-count">0</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">TPM (TILE/M)</span>
+                        <span class="metric-value" id="tpm">0.00</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">LPM (LINE/M)</span>
+                        <span class="metric-value" id="lpm">0.00</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">TOTAL ATTACK</span>
+                        <span class="metric-value" id="total-attack">0</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">T-SPIN COUNT</span>
+                        <span class="metric-value" id="ts-count">0</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">LOLITS COUNT</span>
+                        <span class="metric-value" id="lolits-count">0</span>
                     </div>
                 </div>
             </div>

@@ -179,6 +179,21 @@ body {
     font-weight: 700;
 }
 
+.stat-value.small-text {
+    font-size: 0.75rem;
+    display: block;
+    line-height: 1.2;
+    margin-top: 2px;
+    color: #00f0f0;
+}
+
+.timer-item,
+.rank-item {
+    border-top: 1px solid var(--border-color);
+    padding-top: 0.4rem;
+    margin-top: 0.4rem;
+}
+
 .metric-value {
     color: #00f0f0;
 }
@@ -207,7 +222,8 @@ body {
 .main-field {
     position: relative;
     width: 282px;
-    height: 562px;
+    height: 572px;
+    /* Increased from 562px */
     overflow: visible;
     /* To allow screen shake and effects outside */
 }
@@ -262,8 +278,20 @@ body {
     pointer-events: none;
 }
 
+.v-hidden {
+    display: none !important;
+}
+
 .overlay-content {
     text-align: center;
+    white-space: pre-line;
+}
+
+.overlay-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    margin-top: 1rem;
 }
 
 #overlay-title {
@@ -287,6 +315,10 @@ body {
     transition: all 0.2s;
 }
 
+.btn:active {
+    transform: scale(0.95);
+}
+
 .btn-small {
     padding: 0.4rem 1rem;
     font-size: 0.65rem;
@@ -306,6 +338,11 @@ body {
     position: relative;
     width: 100%;
     z-index: 200;
+    margin-bottom: 0.5rem;
+}
+
+.goal-switcher {
+    z-index: 150;
 }
 
 .mode-menu {
@@ -471,37 +508,4 @@ canvas {
     max-width: 800px;
     margin: 0 auto;
     line-height: 1.4;
-}
-
-.mobile-warning {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1000;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 2rem;
-    background: var(--bg-color);
-}
-
-.mobile-warning h1 {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    color: #ff0000;
-}
-
-@media (max-width: 800px) {
-    .mobile-warning {
-        display: flex;
-    }
-
-    .game-container,
-    .controls-guide {
-        display: none !important;
-    }
 }
