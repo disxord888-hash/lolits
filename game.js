@@ -1520,6 +1520,7 @@ class Game {
 
         this.ctx.restore();
         this.drawNext();
+        this.drawHold();
 
         if (this.shake > 0) {
             this.ctx.restore();
@@ -1712,7 +1713,7 @@ class Game {
             const matrix = this.shapes[this.holdPiece];
             // ホールド制限中はグレー、可能な時は正規の色で描画
             const color = this.canHold ? COLORS[this.holdPiece] : '#444444';
-            
+
             const size = matrix.length;
             const offsetX = (4 - size) / 2;
             matrix.forEach((row, y) => {
