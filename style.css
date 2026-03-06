@@ -60,7 +60,7 @@ body {
     height: 100%;
     z-index: -1;
     overflow: hidden;
-    filter: blur(80px);
+    filter: blur(40px);
 }
 
 .blob {
@@ -115,8 +115,8 @@ body {
 
 .glass {
     background: var(--panel-bg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     border: 1px solid var(--border-color);
     border-radius: 12px;
     box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
@@ -155,12 +155,31 @@ body {
 .metrics-container {
     margin-top: 0;
     background: rgba(0, 240, 240, 0.03) !important;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    padding: 0.8rem;
+}
+
+.metrics-container .metric-item {
+    margin-bottom: 0;
+}
+
+.metrics-container .metric-item:nth-child(even) {
+    border-left: 1px solid var(--border-color);
+}
+
+.metrics-container .metric-item.sub-metric {
+    grid-column: span 2;
+    border-left: none;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.2rem;
+    border-radius: 4px;
 }
 
 .stat-item,
 .metric-item {
     text-align: center;
-    margin-bottom: 0.4rem;
 }
 
 .stat-label,

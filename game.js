@@ -354,10 +354,21 @@ class Game {
         this.shake = 0;
         this.beams = [];
         this.tSpinCount = 0;
+        this.tsmCount = 0;
+        this.tssCount = 0;
+        this.tsdCount = 0;
+        this.tstCount = 0;
+        this.lSpinCount = 0;
+        this.jSpinCount = 0;
+        this.sSpinCount = 0;
+        this.zSpinCount = 0;
+        this.iSpinCount = 0;
         this.lolitsCount = 0;
+        this.pcCount = 0;
         this.flashes = [];
         this.lockFlashes = [];
         this.isTSpin = false;
+        this.isSpin = false; // For LJ-SZ Spins
         this.lastMoveWasRotate = false;
         this.attack = 0;
         this.totalAttack = 0;
@@ -370,7 +381,7 @@ class Game {
         this.dropInterval = 1000;
         this.lockDelay = 500; // Standard lock delay (ms)
         this.lastTime = 0;
-        this.gravityG = 0.02; // Blocks per frame (Initial: 0.02G)
+        this.gravityG = 0.015; // Blocks per frame (Initial: 0.015G)
 
         this.paused = true;
         this.gameOver = false;
@@ -455,16 +466,21 @@ class Game {
         return Array.from({ length: ROWS }, () => Array(COLS).fill(0));
     }
 
+    // --- 7バッグ (Random Generator) システム ---
+    // 画像でいただいた通り、全種類を1つの「バッグ」に入れ、
+    // 空になるまでランダムに取り出してから、次のバッグを補充します。
     fillNextQueue() {
         while (this.nextQueue.length < 6) {
             if (this.bag.length === 0) {
+                // 現在のモードで使用可能なすべてのミノをバッグに入れる
                 this.bag = Object.keys(this.shapes);
-                // Shuffle bag
+                // フィッシャー・イェーツのシャッフルでランダム化
                 for (let i = this.bag.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
                     [this.bag[i], this.bag[j]] = [this.bag[j], this.bag[i]];
                 }
             }
+            // バッグから1つずつ取り出してキューに追加
             this.nextQueue.push(this.bag.pop());
         }
     }
@@ -478,36 +494,43 @@ class Game {
         this.showActionMessage(`${mode}-BLOCK MODE`, -1, 0);
     }
 
-    spawnPiece(type = null) {
+    spawnPiece(type = null, isSwapped = false) {
         this.piece = new Tetrimino(type || this.nextQueue.shift(), this.shapes);
         time = 0; // Reset lock delay on spawn
         this.piece.visualX = this.piece.x;
         this.piece.visualY = this.piece.y;
         this.fillNextQueue();
-        this.canHold = true;
+
+        // --- Hold Limit Implementation ---
+        // If it's a new piece from the queue, reset canHold.
+        // If it's a swapped piece from hold, don't reset it (it remains false).
+        if (!isSwapped) {
+            this.canHold = true;
+        }
+
         this.isTSpin = false; // Reset T-Spin flag on spawn
+        this.isSpin = false;
         this.lastMoveWasRotate = false;
 
         if (this.collide()) {
             this.gameOver = true;
-            this.showOverlay('GAME OVER', 'Press ENTER to Restart');
+            this.showOverlay('GAME OVER', 'BLOCK OUT\nPress ENTER to Restart');
         }
     }
 
     hold() {
         if (!this.canHold || this.paused || this.gameOver) return;
 
+        this.canHold = false;
         const currentType = this.piece.type;
         if (this.holdPiece === null) {
             this.holdPiece = currentType;
-            this.spawnPiece();
+            this.spawnPiece(null, true);
         } else {
             const nextType = this.holdPiece;
             this.holdPiece = currentType;
-            this.spawnPiece(nextType);
+            this.spawnPiece(nextType, true);
         }
-
-        this.canHold = true; // Allow switching back and forth while falling
         this.drawHold();
     }
 
@@ -590,11 +613,15 @@ class Game {
         this.piece.y += dy;
         this.piece.rotation = nextRotation;
 
-        // T-Spin detection flag (only for 4-block T piece)
+        // Spin detection flag
         if (this.piece.type === 'T') {
             this.tSpinType = this.checkTSpin(kickIndex);
+        } else if (['I', 'L', 'J', 'S', 'Z'].includes(this.piece.type)) {
+            // Check Immobile for non-T spins
+            this.isSpin = this.checkImmobile();
         } else {
             this.tSpinType = 0;
+            this.isSpin = false;
         }
         this.lastMoveWasRotate = true;
 
@@ -654,6 +681,14 @@ class Game {
         return 2; // Full T-Spin
     }
 
+    checkImmobile() {
+        // A piece is immobile if it cannot move in any of the 4 cardinal directions
+        return this.collide(this.piece.matrix, { x: this.piece.x + 1, y: this.piece.y }) &&
+            this.collide(this.piece.matrix, { x: this.piece.x - 1, y: this.piece.y }) &&
+            this.collide(this.piece.matrix, { x: this.piece.x, y: this.piece.y + 1 }) &&
+            this.collide(this.piece.matrix, { x: this.piece.x, y: this.piece.y - 1 });
+    }
+
     drop(isManual = false) {
         if (this.paused || this.gameOver) return;
         this.piece.y++;
@@ -688,19 +723,19 @@ class Game {
 
 
     lock(isSoftDrop = false) {
-        // --- Lock Out Check ---
-        // If the piece locks entirely above the visible field (Row 6+), it's a Game Over.
-        // In our 26-row grid, rows 0-5 are the buffer/spawn zone.
+        // --- 22nd Row Lock Out Check ---
+        // If the piece locks entirely above Row 22 (index 4), it's a Game Over.
+        // Previously this was index 6 (Row 20).
         const isLockOut = this.piece.matrix.every((row, y) => {
             return row.every((val, x) => {
                 const globalY = this.piece.y + y;
-                return val === 0 || globalY < 6;
+                return val === 0 || globalY < 4;
             });
         });
 
         if (isLockOut) {
             this.gameOver = true;
-            this.showOverlay('GAME OVER', 'LOCK OUT\nPress ENTER to Restart');
+            this.showOverlay('GAME OVER', 'LOCK OUT (22nd ROW)\nPress ENTER to Restart');
             return;
         }
 
@@ -729,16 +764,18 @@ class Game {
         }
         this.lastPieceLockTime = now;
 
-        // Check T-Spin status: must be T-piece and last move was rotate
+        // Check Spin status
         const tspinResult = (this.piece.type === 'T' && this.lastMoveWasRotate) ? this.tSpinType : 0;
-        this.clearLines(tspinResult, isSoftDrop);
+        const isNonTSpin = (['L', 'J', 'S', 'Z'].includes(this.piece.type) && this.lastMoveWasRotate && this.isSpin);
+
+        this.clearLines(tspinResult, isSoftDrop, isNonTSpin);
         this.spawnPiece();
         this.updateStats();
         this.lastMoveWasRotate = false;
         this.tSpinType = 0;
     }
 
-    clearLines(tspinResult = 0, isSoftDrop = false) {
+    clearLines(tspinResult = 0, isSoftDrop = false, isNonTSpin = false) {
         let fullRows = [];
         for (let y = ROWS - 1; y >= 0; y--) {
             if (this.grid[y].every(v => v !== 0)) {
@@ -748,9 +785,11 @@ class Game {
 
         const linesCleared = fullRows.length;
         const isTSpin = tspinResult > 0;
-        const isMini = tspinResult === 1;
+        let isMini = tspinResult === 1;
 
         if (linesCleared > 0 || isTSpin) {
+            // T-Spin Double and Triple are always full T-Spins
+            if (isTSpin && linesCleared >= 2) isMini = false;
             // Determine if it's a "Split" or "One-Two" (Sega Style)
             const isNonContiguous = linesCleared > 1 && (Math.max(...fullRows) - Math.min(...fullRows) + 1) > linesCleared;
 
@@ -799,8 +838,27 @@ class Game {
                 this.b2b = true;
 
                 // Increment counters for difficult moves
-                if (isTSpin) this.tSpinCount++;
+                if (isTSpin) {
+                    this.tSpinCount++;
+                    if (isMini) this.tsmCount++;
+                    else {
+                        if (linesCleared === 1) this.tssCount++;
+                        else if (linesCleared === 2) this.tsdCount++;
+                        else if (linesCleared === 3) this.tstCount++;
+                    }
+                }
                 if (linesCleared === 4) this.lolitsCount++;
+            } else if (isNonTSpin) {
+                // Non-T Spin (LJSZ)
+                const suffixes = [" SPIN", " SPIN SINGLE", " SPIN DOUBLE", " SPIN TRIPLE"];
+                actionText = this.piece.type + suffixes[Math.min(linesCleared, 3)];
+
+                // Increment counters
+                if (this.piece.type === 'I') this.iSpinCount++;
+                if (this.piece.type === 'L') this.lSpinCount++;
+                if (this.piece.type === 'J') this.jSpinCount++;
+                if (this.piece.type === 'S') this.sSpinCount++;
+                if (this.piece.type === 'Z') this.zSpinCount++;
             } else if (linesCleared > 0) {
                 this.b2b = false;
             }
@@ -823,7 +881,8 @@ class Game {
             }
 
             const comboBonus = Math.max(0, this.combo) * 50;
-            this.score += Math.floor((points * b2bMult + comboBonus) * this.level);
+            const spinBonus = isNonTSpin ? 100 * (linesCleared + 1) : 0;
+            this.score += Math.floor((points * b2bMult + comboBonus + spinBonus) * this.level);
 
             if (actionText || this.combo > 0) {
                 // Calculate Attack based on user provided table
@@ -861,6 +920,7 @@ class Game {
                 if (this.checkAllClear()) {
                     currentAttack = 14; // Fixed 14 lines for PC (Tetris 99 style)
                     actionText = "PERFECT CLEAR\n" + actionText;
+                    this.pcCount++;
                 }
 
                 this.attack = currentAttack;
@@ -901,9 +961,9 @@ class Game {
         // NES Gravity Table (Frames per block)
         // Levels 0-9, then groups for 10-12, 13-15, 16-18, 19-28
         const nesFrames = [
-            50, 45, 40, 35, 30, 25, 20, 15, 12, 10, // Level 1-10 (More gradual progression)
-            9, 8, 8, 7, 7, 6, 6, 5, 5, 4,          // Level 11-20
-            4, 3, 3, 2, 2, 2, 1, 1                  // Level 21-28
+            67, 60, 54, 48, 42, 36, 30, 24, 18, 12, // Level 1-10 (Starting at ~0.015G)
+            10, 9, 8, 8, 7, 7, 6, 6, 5, 5,       // Level 11-20
+            4, 4, 3, 3, 2, 2, 1, 1               // Level 21-28
         ];
 
         if (this.level < 29) {
@@ -950,7 +1010,6 @@ class Game {
         }
         return true;
     }
-
     handleKeyDown(e) {
         if (e.keyCode === 27) { // ESC
             if (this.gameOver) return;
@@ -958,6 +1017,20 @@ class Game {
             else this.pause();
             e.preventDefault();
             return;
+        }
+
+        // Mode Switching (Only if game not started or paused or game over)
+        if (this.paused || this.gameOver) {
+            if (e.keyCode === 52 || e.keyCode === 100) { // '4' or Numpad '4'
+                this.switchGoal(40);
+                e.preventDefault();
+                return;
+            }
+            if (e.keyCode === 48 || e.keyCode === 96) { // '0' or Numpad '0'
+                this.switchGoal(0);
+                e.preventDefault();
+                return;
+            }
         }
 
         if (e.keyCode === 13) { // ENTER
@@ -982,7 +1055,6 @@ class Game {
 
         switch (e.keyCode) {
             case 37: // LEFT
-            case 65: // A
                 if (this.moveDir !== -1) {
                     this.moveSide(-1);
                     this.moveDir = -1;
@@ -991,7 +1063,6 @@ class Game {
                 e.preventDefault();
                 break;
             case 39: // RIGHT
-            case 68: // D
                 if (this.moveDir !== 1) {
                     this.moveSide(1);
                     this.moveDir = 1;
@@ -1000,24 +1071,19 @@ class Game {
                 e.preventDefault();
                 break;
             case 38: // UP - Rotate CW
-            case 87: // W
-            case 88: // X
-            case 69: // E
                 this.rotate(1);
                 e.preventDefault();
                 break;
             case 40: // DOWN
-            case 83: // S
-                this.drop(true);
+                this.softDropKeyDown = true;
+                this.softDropActive = true;
                 e.preventDefault();
                 break;
+            case 88: // X - Rotate CW
+                this.rotate(1);
+                break;
             case 90: // Z - Rotate CCW
-            case 81: // Q
-                if (e.shiftKey && e.keyCode === 81) {
-                    this.surrender();
-                } else {
-                    this.rotate(-1);
-                }
+                this.rotate(-1);
                 break;
             case 67: // C - Hold
                 this.hold();
@@ -1025,22 +1091,20 @@ class Game {
             case 80: // P - Pause
                 this.pause();
                 break;
-            default:
-                // Handle 1-9 and 0 (KeyCodes 48-57)
-                if (e.keyCode >= 48 && e.keyCode <= 57) {
-                    const num = e.keyCode === 48 ? 9 : (e.keyCode - 49);
-                    this.moveToColumn(num);
-                    e.preventDefault();
-                }
+            case 81: // Q - Surrender
+                this.surrender();
                 break;
         }
     }
 
     handleKeyUp(e) {
-        if ((e.keyCode === 37 || e.keyCode === 65) && this.moveDir === -1) {
+        if (e.keyCode === 37 && this.moveDir === -1) {
             this.moveDir = 0;
-        } else if ((e.keyCode === 39 || e.keyCode === 68) && this.moveDir === 1) {
+        } else if (e.keyCode === 39 && this.moveDir === 1) {
             this.moveDir = 0;
+        } else if (e.keyCode === 40) {
+            this.softDropKeyDown = false;
+            this.softDropActive = false;
         }
     }
 
@@ -1060,48 +1124,6 @@ class Game {
         this.piece.y--;
 
         return true;
-    }
-
-    moveToColumn(targetCol) {
-        if (!this.piece) return;
-
-        // Find the left-most block column in the piece's matrix
-        let firstBlockCol = -1;
-        for (let x = 0; x < this.piece.matrix[0].length; x++) {
-            for (let y = 0; y < this.piece.matrix.length; y++) {
-                if (this.piece.matrix[y][x] !== 0) {
-                    firstBlockCol = x;
-                    break;
-                }
-            }
-            if (firstBlockCol !== -1) break;
-        }
-
-        // Target X for piece matrix so that the first block is at targetCol
-        const targetX = targetCol - firstBlockCol;
-        const startX = this.piece.x;
-        const dir = targetX > startX ? 1 : -1;
-
-        // Move step by step to handle collisions correctly
-        let moved = false;
-        while (this.piece.x !== targetX) {
-            this.piece.x += dir;
-            if (this.collide()) {
-                this.piece.x -= dir; // Revert
-                break;
-            }
-            moved = true;
-        }
-
-        if (moved) {
-            this.piece.isMoving = true;
-            // Update lock delay if on ground
-            this.piece.y++;
-            if (this.collide()) {
-                this.piece.lockMoveCount++;
-            }
-            this.piece.y--;
-        }
     }
 
     pause() {
@@ -1204,7 +1226,17 @@ class Game {
         this.combo = -1;
         this.b2b = false;
         this.tSpinCount = 0;
+        this.tsmCount = 0;
+        this.tssCount = 0;
+        this.tsdCount = 0;
+        this.tstCount = 0;
+        this.lSpinCount = 0;
+        this.jSpinCount = 0;
+        this.sSpinCount = 0;
+        this.zSpinCount = 0;
+        this.iSpinCount = 0;
         this.lolitsCount = 0;
+        this.pcCount = 0;
         this.totalAttack = 0;
         this.fillNextQueue();
         this.spawnPiece();
@@ -1242,7 +1274,17 @@ class Game {
             elapsedTime: this.elapsedTime,
             lineGoal: this.lineGoal,
             tSpinCount: this.tSpinCount,
+            tsmCount: this.tsmCount,
+            tssCount: this.tssCount,
+            tsdCount: this.tsdCount,
+            tstCount: this.tstCount,
+            lSpinCount: this.lSpinCount,
+            jSpinCount: this.jSpinCount,
+            sSpinCount: this.sSpinCount,
+            zSpinCount: this.zSpinCount,
+            iSpinCount: this.iSpinCount,
             lolitsCount: this.lolitsCount,
+            pcCount: this.pcCount,
             piece: this.piece ? {
                 type: this.piece.type,
                 matrix: this.piece.matrix,
@@ -1286,7 +1328,17 @@ class Game {
                 this.elapsedTime = state.elapsedTime || 0;
                 this.lineGoal = state.lineGoal || 0;
                 this.tSpinCount = state.tSpinCount || 0;
+                this.tsmCount = state.tsmCount || 0;
+                this.tssCount = state.tssCount || 0;
+                this.tsdCount = state.tsdCount || 0;
+                this.tstCount = state.tstCount || 0;
+                this.lSpinCount = state.lSpinCount || 0;
+                this.jSpinCount = state.jSpinCount || 0;
+                this.sSpinCount = state.sSpinCount || 0;
+                this.zSpinCount = state.zSpinCount || 0;
+                this.iSpinCount = state.iSpinCount || 0;
                 this.lolitsCount = state.lolitsCount || 0;
+                this.pcCount = state.pcCount || 0;
 
                 // Update Goal Button Text
                 const goalText = this.lineGoal === 0 ? 'GOAL: ENDLESS' : `GOAL: ${this.lineGoal} LINES`;
@@ -1356,7 +1408,17 @@ class Game {
         document.getElementById('tile-count').innerText = this.placedPieces * this.currentMode;
         document.getElementById('total-attack').innerText = this.totalAttack;
         document.getElementById('ts-count').innerText = this.tSpinCount;
+        document.getElementById('tsm-count').innerText = this.tsmCount;
+        document.getElementById('tss-count').innerText = this.tssCount;
+        document.getElementById('tsd-count').innerText = this.tsdCount;
+        document.getElementById('tst-count').innerText = this.tstCount;
+        document.getElementById('l-spin-count').innerText = this.lSpinCount;
+        document.getElementById('j-spin-count').innerText = this.jSpinCount;
+        document.getElementById('s-spin-count').innerText = this.sSpinCount;
+        document.getElementById('z-spin-count').innerText = this.zSpinCount;
+        document.getElementById('i-spin-count').innerText = this.iSpinCount;
         document.getElementById('lolits-count').innerText = this.lolitsCount;
+        document.getElementById('pc-count').innerText = this.pcCount;
 
         // TPM and LPM Calculation (Update only on stats update)
         if (this.elapsedTime > 0) {
@@ -1488,18 +1550,17 @@ class Game {
     }
 
     drawLockFlashes() {
+        if (this.lockFlashes.length === 0) return;
         this.ctx.save();
-        this.lockFlashes.forEach((f, i) => {
+        for (let i = this.lockFlashes.length - 1; i >= 0; i--) {
+            const f = this.lockFlashes[i];
             this.ctx.globalAlpha = f.life;
-            this.ctx.globalCompositeOperation = 'lighter';
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.shadowBlur = 20 * f.life;
-            this.ctx.shadowColor = '#ffffff';
             this.ctx.fillRect(f.x * BLOCK_SIZE, f.y * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
 
-            f.life -= 0.1;
+            f.life -= 0.15;
             if (f.life <= 0) this.lockFlashes.splice(i, 1);
-        });
+        }
         this.ctx.restore();
     }
 
@@ -1544,25 +1605,26 @@ class Game {
     }
 
     drawFlashes() {
-        this.flashes.forEach((f, i) => {
-            this.ctx.save();
+        if (this.flashes.length === 0) return;
+        this.ctx.save();
+        for (let i = this.flashes.length - 1; i >= 0; i--) {
+            const f = this.flashes[i];
             this.ctx.globalAlpha = f.life * 0.6;
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.shadowBlur = 20;
-            this.ctx.shadowColor = '#ffffff';
             this.ctx.fillRect(0, f.y * BLOCK_SIZE, COLS * BLOCK_SIZE, BLOCK_SIZE);
-            this.ctx.restore();
             f.life -= 0.15;
             if (f.life <= 0) this.flashes.splice(i, 1);
-        });
+        }
+        this.ctx.restore();
     }
 
     createLineClearParticles(yRow, intensity = 1.0) {
+        if (this.particles.length > 500) return; // Cap particles
         const count = Math.floor(4 * intensity);
-        for (let x = 0; x < COLS; x++) {
+        for (let x = 0; x < COLS; x += 2) { // Reduce density
             for (let i = 0; i < count; i++) {
                 this.particles.push({
-                    x: x * BLOCK_SIZE + Math.random() * BLOCK_SIZE,
+                    x: x * BLOCK_SIZE + Math.random() * BLOCK_SIZE * 2,
                     y: yRow * BLOCK_SIZE + Math.random() * BLOCK_SIZE,
                     vx: (Math.random() - 0.5) * 30 * intensity,
                     vy: (Math.random() - 0.5) * 30 * intensity,
@@ -1575,17 +1637,19 @@ class Game {
     }
 
     drawParticles() {
+        if (this.particles.length === 0) return;
         this.ctx.save();
-        this.particles.forEach((p, i) => {
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
             this.ctx.globalAlpha = p.life;
             this.ctx.fillStyle = p.color;
             const size = p.size || 4;
             this.ctx.fillRect(p.x, p.y, size, size);
             p.x += p.vx;
             p.y += p.vy;
-            p.life -= 0.04;
+            p.life -= 0.05;
             if (p.life <= 0) this.particles.splice(i, 1);
-        });
+        }
         this.ctx.restore();
     }
 
@@ -1610,7 +1674,7 @@ class Game {
         const py = y * BLOCK_SIZE;
 
         if (isGhost) {
-            ctx.strokeStyle = '#ffffff55';
+            ctx.strokeStyle = '#ffffff44';
             ctx.lineWidth = 1;
             ctx.strokeRect(px + 2, py + 2, BLOCK_SIZE - 4, BLOCK_SIZE - 4);
             return;
@@ -1620,14 +1684,10 @@ class Game {
         ctx.fillStyle = color;
         ctx.fillRect(px + 1, py + 1, BLOCK_SIZE - 2, BLOCK_SIZE - 2);
 
-        // Highlight
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        ctx.fillRect(px + 1, py + 1, BLOCK_SIZE - 2, 4);
-        ctx.fillRect(px + 1, py + 1, 4, BLOCK_SIZE - 2);
-
-        // Glow effect
-        ctx.shadowBlur = 10;
-        ctx.shadowColor = color;
+        // Shine/Highlight (Simplified)
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+        ctx.fillRect(px + 1, py + 1, BLOCK_SIZE - 2, 3);
+        ctx.fillRect(px + 1, py + 1, 3, BLOCK_SIZE - 2);
     }
 
     drawNext() {
@@ -1650,11 +1710,15 @@ class Game {
         this.holdCtx.clearRect(0, 0, this.holdCanvas.width, this.holdCanvas.height);
         if (this.holdPiece) {
             const matrix = this.shapes[this.holdPiece];
-            const offsetX = (6 - matrix[0].length) / 2;
+            // ホールド制限中はグレー、可能な時は正規の色で描画
+            const color = this.canHold ? COLORS[this.holdPiece] : '#444444';
+            
+            const size = matrix.length;
+            const offsetX = (4 - size) / 2;
             matrix.forEach((row, y) => {
                 row.forEach((value, x) => {
                     if (value !== 0) {
-                        this.drawBlockSmall(this.holdCtx, x + offsetX, y + 0.5, COLORS[this.holdPiece]);
+                        this.drawBlockSmall(this.holdCtx, x + offsetX, y + 0.5, color);
                     }
                 });
             });
@@ -1669,6 +1733,8 @@ class Game {
         ctx.fillRect(px + 1, py + 1, size - 2, size - 2);
         ctx.shadowBlur = 0;
     }
+
+
 
     update(timestamp = 0) {
         const deltaTime = timestamp - this.lastTime;

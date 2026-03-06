@@ -121,11 +121,11 @@
                 <!-- New Metrics Display -->
                 <div class="panel-section glass metrics-container">
                     <div class="metric-item">
-                        <span class="metric-label">PPS (BLOCK/S)</span>
+                        <span class="metric-label">PPS</span>
                         <span class="metric-value" id="pps">0.00</span>
                     </div>
                     <div class="metric-item">
-                        <span class="metric-label">GRAVITY (G)</span>
+                        <span class="metric-label">GRAVITY</span>
                         <span class="metric-value" id="gravity-g">0.00</span>
                     </div>
                     <div class="metric-item">
@@ -137,11 +137,11 @@
                         <span class="metric-value" id="tile-count">0</span>
                     </div>
                     <div class="metric-item">
-                        <span class="metric-label">TPM (TILE/M)</span>
+                        <span class="metric-label">TPM</span>
                         <span class="metric-value" id="tpm">0.00</span>
                     </div>
                     <div class="metric-item">
-                        <span class="metric-label">LPM (LINE/M)</span>
+                        <span class="metric-label">LPM</span>
                         <span class="metric-value" id="lpm">0.00</span>
                     </div>
                     <div class="metric-item">
@@ -149,24 +149,44 @@
                         <span class="metric-value" id="total-attack">0</span>
                     </div>
                     <div class="metric-item">
-                        <span class="metric-label">T-SPIN COUNT</span>
+                        <span class="metric-label">T-SPIN TOTAL</span>
                         <span class="metric-value" id="ts-count">0</span>
                     </div>
+                    <div class="metric-item sub-metric">
+                        <span class="metric-label">└ M / S / D / T</span>
+                        <span class="metric-value"><span id="tsm-count">0</span> / <span id="tss-count">0</span> / <span
+                                id="tsd-count">0</span> / <span id="tst-count">0</span></span>
+                    </div>
                     <div class="metric-item">
-                        <span class="metric-label">LOLITS COUNT</span>
-                        <span class="metric-value" id="lolits-count">0</span>
+                        <span class="metric-label">LJ-SPIN</span>
+                        <span class="metric-value"><span id="l-spin-count">0</span> / <span
+                                id="j-spin-count">0</span></span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">SZ-SPIN</span>
+                        <span class="metric-value"><span id="s-spin-count">0</span> / <span
+                                id="z-spin-count">0</span></span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">I-SPIN</span>
+                        <span class="metric-value" id="i-spin-count">0</span>
+                    </div>
+                    <div class="metric-item">
+                        <span class="metric-label">LOLITS / ALL CLEAR</span>
+                        <span class="metric-value"><span id="lolits-count">0</span> / <span
+                                id="pc-count">0</span></span>
                     </div>
                 </div>
             </div>
         </div>
 
         <div class="controls-guide glass">
-            <div class="guide-item"><span>← / →</span> Move</div>
-            <div class="guide-item"><span>↑ / X / Z</span> Rotate</div>
-            <div class="guide-item"><span>↓</span> Soft Drop</div>
-            <div class="guide-item"><span>Space</span> Hard Drop</div>
-            <div class="guide-item"><span>C</span> Hold</div>
-            <div class="guide-item"><span>P</span> Pause</div>
+            <div class="guide-item"><span>← / →</span> 移動</div>
+            <div class="guide-item"><span>↑ / X / Z</span> 回転</div>
+            <div class="guide-item"><span>↓</span> ソフトドロップ</div>
+            <div class="guide-item"><span>Space</span> ハードドロップ</div>
+            <div class="guide-item"><span>C</span> ホールド（1手につき1回）</div>
+            <div class="guide-item"><span>P</span> ポーズ</div>
         </div>
 
 
